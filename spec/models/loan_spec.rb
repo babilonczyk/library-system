@@ -69,6 +69,112 @@ RSpec.describe Loan do
     end
   end
 
+  describe ".due_for_upcoming_due_reminder" do
+    around { |example| travel_to(Date.new(2026, 9, 11)) { example.run } }
+
+    subject(:due_for_reminder) { described_class.due_for_upcoming_due_reminder }
+
+    let(:book) { create(:book) }
+    let(:returned_on) { nil }
+    let(:upcoming_due_sent_at) { nil }
+    # Three days from the frozen date, so this loan is the one to remind about.
+    let(:due_on) { Date.new(2026, 9, 14) }
+    let!(:loan) do
+      create(:loan,
+             book: book,
+             borrowed_on: Date.new(2026, 8, 15),
+             due_on: due_on,
+             returned_on: returned_on,
+             upcoming_due_sent_at: upcoming_due_sent_at)
+    end
+
+    it "returns an open loan due in three days that has not been reminded yet" do
+      expect(due_for_reminder).to contain_exactly(loan)
+    end
+
+    it "reads the date it is given rather than today" do
+      aggregate_failures do
+        expect(described_class.due_for_upcoming_due_reminder(Date.new(2026, 9, 10))).to be_empty
+        expect(described_class.due_for_upcoming_due_reminder(Date.new(2026, 9, 11)))
+          .to contain_exactly(loan)
+      end
+    end
+
+    context "when the reminder has already gone out" do
+      let(:upcoming_due_sent_at) { Time.current }
+
+      it { is_expected.to be_empty }
+    end
+
+    context "when the loan is due on another day" do
+      let(:due_on) { Date.new(2026, 9, 15) }
+
+      it { is_expected.to be_empty }
+    end
+
+    context "when the book is already back" do
+      let(:returned_on) { Date.current }
+
+      it { is_expected.to be_empty }
+    end
+
+    context "when the book has been withdrawn" do
+      let(:book) { create(:book, :withdrawn) }
+
+      it { is_expected.to be_empty }
+    end
+  end
+
+  describe ".due_for_due_today_reminder" do
+    around { |example| travel_to(Date.new(2026, 9, 11)) { example.run } }
+
+    subject(:due_for_reminder) { described_class.due_for_due_today_reminder }
+
+    let(:book) { create(:book) }
+    let(:returned_on) { nil }
+    let(:due_today_sent_at) { nil }
+    let(:upcoming_due_sent_at) { nil }
+    let!(:loan) do
+      create(:loan,
+             book: book,
+             borrowed_on: Date.new(2026, 8, 12),
+             due_on: Date.new(2026, 9, 11),
+             returned_on: returned_on,
+             due_today_sent_at: due_today_sent_at,
+             upcoming_due_sent_at: upcoming_due_sent_at)
+    end
+
+    it "returns an open loan due today that has not been reminded yet" do
+      expect(due_for_reminder).to contain_exactly(loan)
+    end
+
+    context "when the reminder has already gone out" do
+      let(:due_today_sent_at) { Time.current }
+
+      it { is_expected.to be_empty }
+    end
+
+    context "when the advance reminder has gone out" do
+      let(:upcoming_due_sent_at) { Date.new(2026, 9, 8) }
+
+      it "still returns the loan, since the two reminders are tracked apart" do
+        expect(due_for_reminder).to contain_exactly(loan)
+      end
+    end
+
+    context "when the book is already back" do
+      let(:returned_on) { Date.current }
+
+      it { is_expected.to be_empty }
+    end
+
+    context "when the book has been withdrawn" do
+      let(:book) { create(:book, :withdrawn) }
+
+      it { is_expected.to be_empty }
+    end
+  end
+
   describe "#overdue?" do
     around { |example| travel_to(Date.new(2026, 9, 11)) { example.run } }
 

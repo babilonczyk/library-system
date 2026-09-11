@@ -6,6 +6,19 @@ class Loan < ApplicationRecord
   scope :closed, -> { where.not(returned_on: nil) }
   scope :overdue, ->(on = Date.current) { open.where(due_on: ...on) }
 
+  # A loan worth mailing about. The book has to still be in the catalogue: a
+  # withdrawn book means the copy is gone, and chasing a reader for it would be
+  # noise.
+  scope :mailable, -> { open.joins(:book).merge(Book.not_withdrawn) }
+
+  # Who to mail on a given date. Both read due_on, which is indexed.
+  scope :due_for_upcoming_due_reminder, ->(on = Date.current) {
+    mailable.where(upcoming_due_sent_at: nil, due_on: LoanPolicy.reminder_due_on(on))
+  }
+  scope :due_for_due_today_reminder, ->(on = Date.current) {
+    mailable.where(due_today_sent_at: nil, due_on: on)
+  }
+
   validates :borrowed_on, presence: true
   validates :due_on, presence: true
 
