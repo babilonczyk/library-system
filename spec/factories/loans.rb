@@ -5,7 +5,7 @@ FactoryBot.define do
     reader
 
     borrowed_on { Date.current }
-    due_on { borrowed_on + 30 }
+    due_on { LoanPolicy.due_on(borrowed_on) }
 
     trait :returned do
       returned_on { Date.current }
