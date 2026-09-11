@@ -1,0 +1,21 @@
+# The build context, kept to what the image actually needs.
+.git
+.github
+.gitattributes
+.gitignore
+
+# Written by running the app or the suite, never copied in.
+/coverage
+/log/*
+!/log/.keep
+/tmp/*
+!/tmp/.keep
+!/tmp/pids/.keep
+
+# Local to a developer's machine.
+.bundle
+/vendor/bundle
+.DS_Store
+
+Dockerfile
+.dockerignore

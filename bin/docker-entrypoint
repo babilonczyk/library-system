@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+# Only the web service prepares the database. The worker starts against the
+# same one and must not race it.
+#
+# db:prepare, not db:test:prepare or db:migrate: it creates the database and
+# seeds it when it is new, which is what makes the first boot worth looking at,
+# and does nothing on every boot after that.
+if [ "${1}" = "bin/rails" ] && [ "${2}" = "server" ]; then
+  bin/rails db:prepare
+fi
+
+exec "${@}"
