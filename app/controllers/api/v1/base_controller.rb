@@ -15,6 +15,7 @@ module Api
       ERROR_STATUSES = {
         record_not_found: :not_found,
         parameter_missing: :bad_request,
+        invalid_availability_filter: :bad_request,
         validation_failed: :unprocessable_content
       }.freeze
 
