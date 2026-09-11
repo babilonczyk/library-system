@@ -3,6 +3,11 @@ require "rails_helper"
 RSpec.describe Book do
   subject(:book) { build(:book) }
 
+  describe "associations" do
+    it { is_expected.to have_many(:loans).dependent(:restrict_with_exception) }
+    it { is_expected.to have_one(:active_loan).class_name("Loan") }
+  end
+
   describe "validations" do
     it { is_expected.to validate_presence_of(:title) }
     it { is_expected.to validate_presence_of(:author) }
@@ -39,6 +44,37 @@ RSpec.describe Book do
 
     it "is true once it has been withdrawn" do
       expect(build(:book, :withdrawn)).to be_withdrawn
+    end
+  end
+
+  describe "#borrowed?" do
+    it "is false while no loan is open" do
+      expect(create(:book)).not_to be_borrowed
+    end
+
+    it "is true while a loan is open" do
+      expect(create(:book, :borrowed)).to be_borrowed
+    end
+
+    it "is false again once the book comes back" do
+      borrowed = create(:book, :borrowed)
+      borrowed.active_loan.update!(returned_on: Date.current)
+
+      expect(borrowed.reload).not_to be_borrowed
+    end
+  end
+
+  describe "#available?" do
+    it "is true for a kept book nobody has out" do
+      expect(create(:book)).to be_available
+    end
+
+    it "is false while the book is on loan" do
+      expect(create(:book, :borrowed)).not_to be_available
+    end
+
+    it "is false once the book is withdrawn" do
+      expect(create(:book, :withdrawn)).not_to be_available
     end
   end
 

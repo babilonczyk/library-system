@@ -7,5 +7,9 @@ FactoryBot.define do
     trait :withdrawn do
       withdrawn_at { Time.current }
     end
+
+    trait :borrowed do
+      after(:create) { |book| create(:loan, book: book) }
+    end
   end
 end

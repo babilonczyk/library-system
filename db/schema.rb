@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_11_141051) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_11_141855) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -26,6 +26,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_11_141051) do
     t.check_constraint "serial_number ~ '^[0-9]{6}$'::text", name: "books_serial_number_is_six_digits"
   end
 
+  create_table "loans", force: :cascade do |t|
+    t.bigint "book_id", null: false
+    t.date "borrowed_on", null: false
+    t.datetime "created_at", null: false
+    t.date "due_on", null: false
+    t.bigint "reader_id", null: false
+    t.date "returned_on"
+    t.datetime "updated_at", null: false
+    t.index ["book_id"], name: "index_loans_on_active_book", unique: true, where: "(returned_on IS NULL)"
+    t.index ["book_id"], name: "index_loans_on_book_id"
+    t.index ["due_on"], name: "index_loans_on_due_on"
+    t.index ["reader_id"], name: "index_loans_on_reader_id"
+    t.check_constraint "due_on >= borrowed_on", name: "loans_due_on_is_not_before_borrowed_on"
+    t.check_constraint "returned_on IS NULL OR returned_on >= borrowed_on", name: "loans_returned_on_is_not_before_borrowed_on"
+  end
+
   create_table "readers", force: :cascade do |t|
     t.text "card_number", null: false
     t.datetime "created_at", null: false
@@ -36,4 +52,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_11_141051) do
     t.index ["email"], name: "index_readers_on_email", unique: true
     t.check_constraint "card_number ~ '^[0-9]{6}$'::text", name: "readers_card_number_is_six_digits"
   end
+
+  add_foreign_key "loans", "books"
+  add_foreign_key "loans", "readers"
 end

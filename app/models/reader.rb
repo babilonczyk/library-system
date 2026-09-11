@@ -1,6 +1,8 @@
 class Reader < ApplicationRecord
   CARD_NUMBER_FORMAT = /\A\d{6}\z/
 
+  has_many :loans, dependent: :restrict_with_exception
+
   validates :name, presence: true
   validates :email, presence: true,
                     format: { with: URI::MailTo::EMAIL_REGEXP },
