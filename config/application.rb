@@ -33,7 +33,10 @@ module LibrarySystem
     # These settings can be overridden in specific environments using the files
     # in config/environments, which are processed later.
     #
-    # config.time_zone = "Central Time (US & Canada)"
+    # Stated rather than implied. The loan lifecycle uses Date columns, so the
+    # zone decides one thing: what Date.current returns when the reminder
+    # sweep runs. UTC keeps that boundary identical here, in CI and in Docker.
+    config.time_zone = "UTC"
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Only loads a smaller set of middleware suitable for API only apps.

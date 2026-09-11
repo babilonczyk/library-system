@@ -26,3 +26,6 @@
 
 # Ignore operating system files.
 .DS_Store
+
+# Ignore coverage reports.
+/coverage/
