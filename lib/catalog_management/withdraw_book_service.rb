@@ -11,12 +11,11 @@ module CatalogManagement
     # what makes the pair safe.
     def call
       @book.with_lock do
-        if @book.loans.open.exists?
-          { error: :book_on_loan }
-        else
-          @book.update!(withdrawn_at: @at)
-          { book: @book }
-        end
+        return { error: :book_on_loan } if @book.loans.open.exists?
+
+        @book.update!(withdrawn_at: @at)
+
+        { book: @book }
       end
     end
   end
