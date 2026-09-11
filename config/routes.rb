@@ -4,6 +4,7 @@ Rails.application.routes.draw do
       get "health", to: "health#show"
 
       resources :books, only: %i[ index show create destroy ]
+      resources :readers, only: %i[ index create ]
     end
   end
 

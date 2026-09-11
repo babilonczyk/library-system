@@ -10,6 +10,11 @@ module Api
     # same symbol, which is what lets the domain layer return bare symbols and
     # never hold a sentence of English.
     class BaseController < ApplicationController
+      include Pagy::Method
+
+      # The cap is what stops a client asking for a whole table at once.
+      MAX_LIMIT = 100
+
       # Grows as services introduce new refusals. Anything unmapped answers 422,
       # which is the right default for "understood, but refused".
       ERROR_STATUSES = {
@@ -27,6 +32,13 @@ module Api
       rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
 
       private
+        # Every list endpoint answers with the same meta object.
+        def paginate(scope)
+          page, records = pagy(scope, max_limit: MAX_LIMIT)
+
+          [ records, { page: page.page, limit: page.limit, count: page.count, pages: page.pages } ]
+        end
+
         def render_data(data, meta: nil, status: :ok)
           body = { data: data }
           body[:meta] = meta if meta
