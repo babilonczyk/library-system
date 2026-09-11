@@ -76,7 +76,11 @@ borrowings = {
   # borrowed, returned, and out again: a book with a history
   "200006" => [ { card: "100006", borrowed_days_ago: 120, returned_days_ago: 100 },
                 { card: "100007", borrowed_days_ago: 90,  returned_days_ago: 80 },
-                { card: "100008", borrowed_days_ago: 3 } ]
+                { card: "100008", borrowed_days_ago: 3 } ],
+  # Due in three days, and due today. The loan period is thirty days, so these
+  # two are what the first reminder sweep picks up: run it and two mails go out.
+  "200007" => [ { card: "100001", borrowed_days_ago: 27 } ],
+  "200008" => [ { card: "100002", borrowed_days_ago: 30 } ]
 }
 
 borrowings.each do |serial_number, entries|
@@ -95,3 +99,5 @@ end
 
 puts "Seeded #{Reader.count} readers, #{Book.count} books and #{Loan.count} loans " \
      "(#{Loan.open.count} out, #{Loan.overdue.count} overdue, #{Loan.closed.count} returned)."
+puts "Reminders waiting to go out: #{Loan.due_for_upcoming_due_reminder.count} upcoming, " \
+     "#{Loan.due_for_due_today_reminder.count} due today."

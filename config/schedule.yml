@@ -1,0 +1,8 @@
+# Loaded by the Sidekiq server on startup. sidekiq-cron reads this file by
+# default, so nothing has to require it.
+reminder_sweep:
+  cron: "0 7 * * *"
+  class: "CirculationManagement::Jobs::ReminderSweepJob"
+  queue: reminders
+  active_job: true
+  description: "Mails readers three days before a book is due, and again on the day"

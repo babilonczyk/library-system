@@ -48,5 +48,15 @@ module LibrarySystem
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # Background work runs on Sidekiq everywhere except the test environment,
+    # which keeps the adapter that lets specs assert on enqueued jobs.
+    config.active_job.queue_adapter = :sidekiq
+
+    # Cookies and a session, added back for one reason: the Sidekiq dashboard
+    # is a Rack app that needs a session for its CSRF protection. An API-only
+    # app has neither by default, and nothing else here uses them.
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore, key: "_library_system_session"
   end
 end

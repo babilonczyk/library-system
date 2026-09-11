@@ -1,4 +1,14 @@
+require "sidekiq/web"
+# Adds the Cron tab to the dashboard, which is where the daily schedule and its
+# last run are visible.
+require "sidekiq/cron/web"
+
 Rails.application.routes.draw do
+  # No authentication. Anyone who can reach the port can retry or kill a job.
+  # Stated in the README as a known gap rather than solved with a login the
+  # brief never asked for.
+  mount Sidekiq::Web => "/sidekiq"
+
   namespace :api do
     namespace :v1 do
       get "health", to: "health#show"

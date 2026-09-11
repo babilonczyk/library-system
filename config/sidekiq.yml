@@ -1,0 +1,6 @@
+# The reminder queue is listed first, so a backlog of anything else cannot
+# delay a mail that is only useful on the day it goes out.
+:concurrency: 5
+:queues:
+  - reminders
+  - default

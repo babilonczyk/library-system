@@ -33,6 +33,10 @@ Rails.application.configure do
   # ActionMailer::Base.deliveries array.
   config.action_mailer.delivery_method = :test
 
+  # Stated rather than inherited: specs assert on what was enqueued, so the
+  # test adapter has to win over the Sidekiq adapter set in application.rb.
+  config.active_job.queue_adapter = :test
+
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }
 
