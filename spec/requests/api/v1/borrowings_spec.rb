@@ -9,7 +9,7 @@ RSpec.describe "Api::V1::Borrowings" do
       reader
 
       travel_to(Date.new(2026, 9, 11)) do
-        post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "100001" } }
+        post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "100001" } }, as: :json
       end
 
       aggregate_failures do
@@ -23,7 +23,7 @@ RSpec.describe "Api::V1::Borrowings" do
 
     it "reports the book as unavailable afterwards" do
       reader
-      post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "100001" } }
+      post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "100001" } }, as: :json
 
       get "/api/v1/books/#{book.id}"
 
@@ -36,7 +36,7 @@ RSpec.describe "Api::V1::Borrowings" do
       expected_errors = [ { "code" => "book_already_borrowed",
                             "detail" => "This book is already on loan." } ]
 
-      post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "100001" } }
+      post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "100001" } }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:conflict)
@@ -45,7 +45,7 @@ RSpec.describe "Api::V1::Borrowings" do
     end
 
     it "answers 404 for a card number nobody holds" do
-      post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "999999" } }
+      post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "999999" } }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:not_found)
@@ -56,7 +56,7 @@ RSpec.describe "Api::V1::Borrowings" do
     it "answers 404 for a book that never existed" do
       reader
 
-      post "/api/v1/books/0/borrow", params: { borrowing: { card_number: "100001" } }
+      post "/api/v1/books/0/borrow", params: { borrowing: { card_number: "100001" } }, as: :json
 
       expect(response).to have_http_status(:not_found)
     end
@@ -65,7 +65,7 @@ RSpec.describe "Api::V1::Borrowings" do
       reader
       withdrawn = create(:book, :withdrawn)
 
-      post "/api/v1/books/#{withdrawn.id}/borrow", params: { borrowing: { card_number: "100001" } }
+      post "/api/v1/books/#{withdrawn.id}/borrow", params: { borrowing: { card_number: "100001" } }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:not_found)
@@ -74,7 +74,7 @@ RSpec.describe "Api::V1::Borrowings" do
     end
 
     it "answers 400 when the borrowing parameter is missing" do
-      post "/api/v1/books/#{book.id}/borrow", params: { card_number: "100001" }
+      post "/api/v1/books/#{book.id}/borrow", params: { card_number: "100001" }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:bad_request)

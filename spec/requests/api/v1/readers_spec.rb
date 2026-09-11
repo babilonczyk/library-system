@@ -35,7 +35,7 @@ RSpec.describe "Api::V1::Readers" do
     end
 
     it "registers the reader and answers 201" do
-      post "/api/v1/readers", params: { reader: valid_attributes }
+      post "/api/v1/readers", params: { reader: valid_attributes }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:created)
@@ -49,7 +49,7 @@ RSpec.describe "Api::V1::Readers" do
     end
 
     it "answers 400 when the reader parameter is missing entirely" do
-      post "/api/v1/readers", params: { name: "Ada" }
+      post "/api/v1/readers", params: { name: "Ada" }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:bad_request)
@@ -59,7 +59,7 @@ RSpec.describe "Api::V1::Readers" do
     end
 
     it "answers 422 with one entry per missing field" do
-      post "/api/v1/readers", params: { reader: { name: "Ada" } }
+      post "/api/v1/readers", params: { reader: { name: "Ada" } }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:unprocessable_content)
@@ -74,7 +74,7 @@ RSpec.describe "Api::V1::Readers" do
                             "detail" => "Email has already been taken",
                             "source" => "email" } ]
 
-      post "/api/v1/readers", params: { reader: valid_attributes.merge(card_number: "100002") }
+      post "/api/v1/readers", params: { reader: valid_attributes.merge(card_number: "100002") }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:unprocessable_content)
@@ -88,7 +88,7 @@ RSpec.describe "Api::V1::Readers" do
                             "detail" => "Card number has already been taken",
                             "source" => "card_number" } ]
 
-      post "/api/v1/readers", params: { reader: valid_attributes.merge(email: "other@example.com") }
+      post "/api/v1/readers", params: { reader: valid_attributes.merge(email: "other@example.com") }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:unprocessable_content)

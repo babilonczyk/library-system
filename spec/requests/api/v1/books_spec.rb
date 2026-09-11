@@ -108,7 +108,7 @@ RSpec.describe "Api::V1::Books" do
     let(:valid_attributes) { { title: "Solaris", author: "Stanisław Lem", serial_number: "200003" } }
 
     it "creates the book and answers 201 with it" do
-      post "/api/v1/books", params: { book: valid_attributes }
+      post "/api/v1/books", params: { book: valid_attributes }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:created)
@@ -120,7 +120,7 @@ RSpec.describe "Api::V1::Books" do
     end
 
     it "points the Location header at the new book" do
-      post "/api/v1/books", params: { book: valid_attributes }
+      post "/api/v1/books", params: { book: valid_attributes }, as: :json
 
       expect(response.headers["Location"]).to end_with("/api/v1/books/#{Book.first.id}")
     end
@@ -130,7 +130,7 @@ RSpec.describe "Api::V1::Books" do
                             "detail" => "A required parameter is missing.",
                             "source" => "book" } ]
 
-      post "/api/v1/books", params: { title: "Solaris" }
+      post "/api/v1/books", params: { title: "Solaris" }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:bad_request)
@@ -139,7 +139,7 @@ RSpec.describe "Api::V1::Books" do
     end
 
     it "answers 422 with one entry per missing field" do
-      post "/api/v1/books", params: { book: { title: "Solaris" } }
+      post "/api/v1/books", params: { book: { title: "Solaris" } }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:unprocessable_content)
@@ -156,7 +156,7 @@ RSpec.describe "Api::V1::Books" do
                             "detail" => "Serial number has already been taken",
                             "source" => "serial_number" } ]
 
-      post "/api/v1/books", params: { book: valid_attributes }
+      post "/api/v1/books", params: { book: valid_attributes }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:unprocessable_content)
@@ -165,7 +165,7 @@ RSpec.describe "Api::V1::Books" do
     end
 
     it "ignores an attribute the client is not allowed to set" do
-      post "/api/v1/books", params: { book: valid_attributes.merge(withdrawn_at: Time.current) }
+      post "/api/v1/books", params: { book: valid_attributes.merge(withdrawn_at: Time.current) }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:created)

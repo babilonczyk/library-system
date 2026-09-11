@@ -24,7 +24,7 @@ RSpec.describe "Api::V1::Returns" do
       create(:reader, card_number: "100001")
 
       post "/api/v1/books/#{book.id}/return"
-      post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "100001" } }
+      post "/api/v1/books/#{book.id}/borrow", params: { borrowing: { card_number: "100001" } }, as: :json
 
       aggregate_failures do
         expect(response).to have_http_status(:created)
