@@ -2,11 +2,11 @@ require "rails_helper"
 
 RSpec.describe CatalogManagement::BookQueryService do
   describe "with no filter" do
-    it "returns every book still in the catalogue" do
-      kept = create(:book)
+    it "returns every book still in the catalog" do
+      in_catalog = create(:book)
       create(:book, :withdrawn)
 
-      expect(described_class.call[:books]).to contain_exactly(kept)
+      expect(described_class.call[:books]).to contain_exactly(in_catalog)
     end
 
     it "orders by title" do

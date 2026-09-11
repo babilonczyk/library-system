@@ -5,7 +5,7 @@ class CreateBooks < ActiveRecord::Migration[8.1]
       t.string :author, null: false
       # Same shape as a reader's card number: an identifier, not a number.
       t.text :serial_number, null: false
-      # Soft delete. A withdrawn book leaves the catalogue but keeps its
+      # Soft delete. A withdrawn book leaves the catalog but keeps its
       # borrowing history, which a hard delete would take with it.
       t.datetime :withdrawn_at
 

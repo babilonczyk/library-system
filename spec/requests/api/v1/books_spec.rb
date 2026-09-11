@@ -86,7 +86,7 @@ RSpec.describe "Api::V1::Books" do
         end
       end
 
-      it "caps the page size, so no client can ask for the whole catalogue" do
+      it "caps the page size, so no client can ask for the whole catalog" do
         get "/api/v1/books", params: { limit: 5_000 }
 
         expect(response.parsed_body["meta"]["limit"]).to eq(100)
@@ -99,6 +99,82 @@ RSpec.describe "Api::V1::Books" do
 
       create_list(:book, 10).each { |book| create(:loan, book: book) }
       grown = count_queries { get "/api/v1/books" }
+
+      expect(grown).to eq(baseline)
+    end
+  end
+
+  describe "GET /api/v1/books/:id" do
+    let(:book) { create(:book, title: "Solaris", author: "Stanisław Lem", serial_number: "200003") }
+
+    it "returns the book with its borrowing history, each loan carrying its reader" do
+      reader = create(:reader, name: "Ada Lovelace")
+      create(:loan, book: book, reader: reader,
+                    borrowed_on: Date.new(2026, 9, 1), due_on: Date.new(2026, 10, 1))
+
+      get "/api/v1/books/#{book.id}"
+
+      aggregate_failures do
+        expect(response).to have_http_status(:ok)
+        expect(response.parsed_body["data"]).to include("title" => "Solaris", "available" => false)
+        expect(response.parsed_body["data"]["loans"].length).to eq(1)
+        expect(response.parsed_body["data"]["loans"].first).to include(
+          "borrowed_on" => "2026-09-01", "due_on" => "2026-10-01", "returned_on" => nil
+        )
+        expect(response.parsed_body["data"]["loans"].first["reader"]).to include("name" => "Ada Lovelace")
+      end
+    end
+
+    it "lists the most recent borrowing first" do
+      create(:loan, book: book, borrowed_on: Date.new(2026, 1, 1), due_on: Date.new(2026, 1, 31),
+                    returned_on: Date.new(2026, 1, 10))
+      create(:loan, book: book, borrowed_on: Date.new(2026, 5, 1), due_on: Date.new(2026, 5, 31),
+                    returned_on: Date.new(2026, 5, 10))
+      create(:loan, book: book, borrowed_on: Date.new(2026, 9, 1), due_on: Date.new(2026, 10, 1))
+
+      get "/api/v1/books/#{book.id}"
+
+      expect(response.parsed_body["data"]["loans"].map { |loan| loan["borrowed_on"] })
+        .to eq([ "2026-09-01", "2026-05-01", "2026-01-01" ])
+    end
+
+    it "returns an empty history for a book nobody has borrowed" do
+      get "/api/v1/books/#{book.id}"
+
+      expect(response.parsed_body["data"]["loans"]).to eq([])
+    end
+
+    it "returns 404 for a withdrawn book, whose history survives in the table" do
+      withdrawn = create(:book, :withdrawn)
+      create(:loan, book: withdrawn)
+      expected_errors = [ { "code" => "record_not_found",
+                            "detail" => "The requested resource could not be found." } ]
+
+      get "/api/v1/books/#{withdrawn.id}"
+
+      aggregate_failures do
+        expect(response).to have_http_status(:not_found)
+        expect(response.parsed_body).to eq("errors" => expected_errors)
+        expect(withdrawn.loans.count).to eq(1)
+      end
+    end
+
+    it "returns 404 for a book that never existed" do
+      get "/api/v1/books/0"
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "issues the same number of queries however long the history is" do
+      create(:loan, book: book, borrowed_on: Date.new(2026, 1, 1), due_on: Date.new(2026, 1, 31),
+                    returned_on: Date.new(2026, 1, 10))
+      baseline = count_queries { get "/api/v1/books/#{book.id}" }
+
+      5.times do |n|
+        create(:loan, book: book, borrowed_on: Date.new(2026, 2 + n, 1), due_on: Date.new(2026, 3 + n, 1),
+                      returned_on: Date.new(2026, 2 + n, 10))
+      end
+      grown = count_queries { get "/api/v1/books/#{book.id}" }
 
       expect(grown).to eq(baseline)
     end

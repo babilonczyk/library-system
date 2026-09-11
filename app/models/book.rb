@@ -1,12 +1,17 @@
 class Book < ApplicationRecord
   SERIAL_NUMBER_FORMAT = /\A\d{6}\z/
 
-  # Loans are never destroyed with their book. Withdrawal is soft precisely so
-  # that a book's borrowing history survives it.
-  has_many :loans, dependent: :restrict_with_exception
+  # Newest borrowing first, sorted by the database. The tie-break on id matters
+  # because two loans can share a borrow date.
+  #
+  # Never destroyed with the book: withdrawal is soft precisely so that a
+  # book's borrowing history survives it.
+  has_many :loans, -> { order(borrowed_on: :desc, id: :desc) },
+           dependent: :restrict_with_exception
   has_one :active_loan, -> { open }, class_name: "Loan"
 
-  scope :kept, -> { where(withdrawn_at: nil) }
+  scope :withdrawn,     -> { where.not(withdrawn_at: nil) }
+  scope :not_withdrawn, -> { where(withdrawn_at: nil) }
 
   validates :title, presence: true
   validates :author, presence: true

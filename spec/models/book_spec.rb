@@ -28,22 +28,44 @@ RSpec.describe Book do
     end
   end
 
-  describe ".kept" do
-    it "returns books that have not been withdrawn" do
-      kept = create(:book)
+  describe ".not_withdrawn" do
+    it "returns books that are still in the catalog" do
+      in_catalog = create(:book)
       create(:book, :withdrawn)
 
-      expect(described_class.kept).to contain_exactly(kept)
+      expect(described_class.not_withdrawn).to contain_exactly(in_catalog)
+    end
+  end
+
+  describe ".withdrawn" do
+    it "returns only the books that have been withdrawn" do
+      create(:book)
+      gone = create(:book, :withdrawn)
+
+      expect(described_class.withdrawn).to contain_exactly(gone)
     end
   end
 
   describe "#withdrawn?" do
-    it "is false while the book is in the catalogue" do
+    it "is false while the book is in the catalog" do
       expect(build(:book)).not_to be_withdrawn
     end
 
     it "is true once it has been withdrawn" do
       expect(build(:book, :withdrawn)).to be_withdrawn
+    end
+  end
+
+  describe "#loans" do
+    it "lists the most recent borrowing first" do
+      book = create(:book)
+      oldest = create(:loan, book: book, borrowed_on: Date.new(2026, 1, 1), due_on: Date.new(2026, 1, 31),
+                             returned_on: Date.new(2026, 1, 10))
+      middle = create(:loan, book: book, borrowed_on: Date.new(2026, 5, 1), due_on: Date.new(2026, 5, 31),
+                             returned_on: Date.new(2026, 5, 10))
+      newest = create(:loan, book: book, borrowed_on: Date.new(2026, 9, 1), due_on: Date.new(2026, 10, 1))
+
+      expect(book.loans).to eq([ newest, middle, oldest ])
     end
   end
 
@@ -65,7 +87,7 @@ RSpec.describe Book do
   end
 
   describe "#available?" do
-    it "is true for a kept book nobody has out" do
+    it "is true for a book in the catalog that nobody has out" do
       expect(create(:book)).to be_available
     end
 

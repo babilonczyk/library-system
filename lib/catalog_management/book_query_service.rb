@@ -22,13 +22,13 @@ module CatalogManagement
       # A subquery rather than a join, so it composes with the preload above
       # instead of fighting it.
       def filtered
-        return kept if @available.nil?
+        return catalog if @available.nil?
 
-        AVAILABILITY.fetch(@available.to_s) ? kept.where.not(id: on_loan) : kept.where(id: on_loan)
+        AVAILABILITY.fetch(@available.to_s) ? catalog.where.not(id: on_loan) : catalog.where(id: on_loan)
       end
 
-      def kept
-        Book.kept.includes(:active_loan).order(:title, :id)
+      def catalog
+        Book.not_withdrawn.includes(:active_loan).order(:title, :id)
       end
 
       def on_loan
