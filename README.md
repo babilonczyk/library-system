@@ -3,6 +3,23 @@
 A Rails API for library staff to manage books, borrowing and returns, with
 automated return reminders.
 
+## Reminder Mails Templates
+
+Two emails: one for a book due in three days, one for a book due today. Both
+are sent as multipart, with a plain text part and an HTML part.
+
+Preview them in a browser:
+
+```sh
+bin/rails server
+```
+
+Open `/rails/mailers` and pick a reminder. Each one renders with a switcher
+between its HTML and text parts.
+
+Reminders sent in development are written to `tmp/mails` as `.eml` files, one
+per recipient, appended to on each send.
+
 ## Gems
 
 Everything added beyond a stock `rails new --api`, and why.

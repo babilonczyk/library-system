@@ -1,0 +1,14 @@
+Dear <%= @loan.reader.name %>,
+
+A quick reminder that the book you borrowed is due back soon.
+
+  <%= @loan.book.title %>
+  by <%= @loan.book.author %>
+
+  Borrowed on <%= @loan.borrowed_on.to_fs(:long) %>
+  Due back on <%= @loan.due_on.to_fs(:long) %>
+
+Please bring it to the library by then, or renew it at the desk.
+
+Thank you,
+The Library

@@ -27,7 +27,17 @@ Rails.application.configure do
   config.cache_store = :memory_store
 
   # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
+  # A reminder that fails to send should say so rather than disappear.
+  config.action_mailer.raise_delivery_errors = true
+
+  # Reminders land as .eml files, one per recipient, appended to on each send.
+  # Open them from tmp/mails, or read the same thing in the development log, or
+  # look at /rails/mailers for a preview.
+  config.action_mailer.delivery_method = :file
+  config.action_mailer.file_settings = {
+    location: Rails.root.join("tmp/mails"),
+    extension: ".eml"
+  }
 
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false

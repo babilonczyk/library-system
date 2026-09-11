@@ -37,6 +37,11 @@ module LibrarySystem
     # zone decides one thing: what Date.current returns when the reminder
     # sweep runs. UTC keeps that boundary identical here, in CI and in Docker.
     config.time_zone = "UTC"
+
+    # Rails looks in test/mailers/previews by default, and this project has no
+    # test directory. Set here rather than in development.rb so a spec can
+    # render the previews and catch one that has stopped working.
+    config.action_mailer.preview_paths = [ Rails.root.join("spec/mailers/previews").to_s ]
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Only loads a smaller set of middleware suitable for API only apps.

@@ -1,0 +1,18 @@
+<div style="font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1c1c1c; line-height: 1.5; max-width: 480px;">
+  <p>Dear <%= @loan.reader.name %>,</p>
+
+  <p>A quick reminder that the book you borrowed is due back soon.</p>
+
+  <div style="border-left: 3px solid #8a7c5c; padding: 4px 0 4px 16px; margin: 20px 0;">
+    <div style="font-size: 17px; font-weight: 600;"><%= @loan.book.title %></div>
+    <div style="color: #6b6b6b;">by <%= @loan.book.author %></div>
+    <div style="margin-top: 10px;">
+      Borrowed <%= @loan.borrowed_on.to_fs(:long) %><br>
+      <strong>Due back <%= @loan.due_on.to_fs(:long) %></strong>
+    </div>
+  </div>
+
+  <p>Please bring it to the library by then, or renew it at the desk.</p>
+
+  <p style="color: #6b6b6b;">The Library</p>
+</div>
