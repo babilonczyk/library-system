@@ -58,4 +58,40 @@ books.each do |attributes|
   end
 end
 
-puts "Seeded #{Reader.count} readers and #{Book.count} books."
+# Loans in every state the API can show, so the index filter, the borrowing
+# history and the overdue scope all have something real to work on.
+#
+# Idempotent by book rather than by date: a book that already has loans is left
+# alone. Loans carry no natural unique key, and the dates below are relative to
+# today, so keying on them would quietly create a second set on the next day.
+borrowings = {
+  # out, not yet due
+  "200001" => [ { card: "100001", borrowed_days_ago: 5 } ],
+  "200002" => [ { card: "100002", borrowed_days_ago: 1 } ],
+  # overdue, still out
+  "200003" => [ { card: "100003", borrowed_days_ago: 40 } ],
+  "200004" => [ { card: "100004", borrowed_days_ago: 75 } ],
+  # came back
+  "200005" => [ { card: "100005", borrowed_days_ago: 60, returned_days_ago: 50 } ],
+  # borrowed, returned, and out again: a book with a history
+  "200006" => [ { card: "100006", borrowed_days_ago: 120, returned_days_ago: 100 },
+                { card: "100007", borrowed_days_ago: 90,  returned_days_ago: 80 },
+                { card: "100008", borrowed_days_ago: 3 } ]
+}
+
+borrowings.each do |serial_number, entries|
+  book = Book.find_by!(serial_number: serial_number)
+  next if book.loans.exists?
+
+  entries.each do |entry|
+    borrowed_on = Date.current - entry[:borrowed_days_ago]
+
+    book.loans.create!(reader: Reader.find_by!(card_number: entry[:card]),
+                       borrowed_on: borrowed_on,
+                       due_on: LoanPolicy.due_on(borrowed_on),
+                       returned_on: entry[:returned_days_ago] && Date.current - entry[:returned_days_ago])
+  end
+end
+
+puts "Seeded #{Reader.count} readers, #{Book.count} books and #{Loan.count} loans " \
+     "(#{Loan.open.count} out, #{Loan.overdue.count} overdue, #{Loan.closed.count} returned)."
