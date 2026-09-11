@@ -22,6 +22,8 @@ module Api
         parameter_missing: :bad_request,
         invalid_availability_filter: :bad_request,
         book_on_loan: :conflict,
+        book_already_borrowed: :conflict,
+        book_not_borrowed: :conflict,
         validation_failed: :unprocessable_content
       }.freeze
 

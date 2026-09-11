@@ -9,4 +9,6 @@ en:
       parameter_missing: "A required parameter is missing."
       invalid_availability_filter: "The available filter accepts only true or false."
       book_on_loan: "This book is on loan and cannot be withdrawn until it is returned."
+      book_already_borrowed: "This book is already on loan."
+      book_not_borrowed: "This book is not currently on loan."
       validation_failed: "The submitted data is not valid."

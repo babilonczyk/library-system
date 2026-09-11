@@ -5,6 +5,9 @@ Rails.application.routes.draw do
 
       resources :books, only: %i[ index show create destroy ]
       resources :readers, only: %i[ index create ]
+
+      post "books/:book_id/borrow", to: "borrowings#create"
+      post "books/:book_id/return", to: "returns#create"
     end
   end
 
