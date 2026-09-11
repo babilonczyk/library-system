@@ -1,0 +1,75 @@
+module Api
+  module V1
+    # Fixes the HTTP contract once, so no controller invents its own shape.
+    #
+    # Success: { "data": ..., "meta": { ... } }
+    # Failure: { "errors": [ { "code": ..., "detail": ..., "source": ... } ] }
+    #
+    # `code` is the symbol a service returned, rendered as a string. It is the
+    # machine-readable part. `detail` is looked up from the locale file by that
+    # same symbol, which is what lets the domain layer return bare symbols and
+    # never hold a sentence of English.
+    class BaseController < ApplicationController
+      # Grows as services introduce new refusals. Anything unmapped answers 422,
+      # which is the right default for "understood, but refused".
+      ERROR_STATUSES = {
+        record_not_found: :not_found,
+        parameter_missing: :bad_request,
+        validation_failed: :unprocessable_content
+      }.freeze
+
+      DEFAULT_ERROR_STATUS = :unprocessable_content
+
+      rescue_from ActiveRecord::RecordNotFound, with: :render_record_not_found
+      rescue_from ActiveRecord::RecordInvalid, with: :render_record_invalid
+      rescue_from ActionController::ParameterMissing, with: :render_parameter_missing
+
+      private
+        def render_data(data, meta: nil, status: :ok)
+          body = { data: data }
+          body[:meta] = meta if meta
+
+          render json: body, status: status
+        end
+
+        def render_error(code, source: nil, status: nil)
+          render json: { errors: [ error_object(code, source: source) ] },
+                 status: status || status_for(code)
+        end
+
+        def error_object(code, source: nil, detail: nil)
+          object = { code: code.to_s, detail: detail || detail_for(code) }
+          object[:source] = source.to_s if source
+
+          object
+        end
+
+        def detail_for(code)
+          I18n.t(code, scope: "api.errors", default: I18n.t("api.errors.unknown"))
+        end
+
+        def status_for(code)
+          ERROR_STATUSES.fetch(code, DEFAULT_ERROR_STATUS)
+        end
+
+        def render_record_not_found
+          render_error(:record_not_found)
+        end
+
+        # One entry per invalid field, so a client can attach each message to the
+        # input that caused it. The detail comes from Active Model, which has
+        # already translated it.
+        def render_record_invalid(exception)
+          errors = exception.record.errors.map do |error|
+            error_object(:validation_failed, source: error.attribute, detail: error.full_message)
+          end
+
+          render json: { errors: errors }, status: status_for(:validation_failed)
+        end
+
+        def render_parameter_missing(exception)
+          render_error(:parameter_missing, source: exception.param)
+        end
+    end
+  end
+end
