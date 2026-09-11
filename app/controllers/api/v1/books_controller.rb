@@ -23,7 +23,21 @@ module Api
         render_data(BookSerializer.new(book, with_traits: :with_history).serializable_hash)
       end
 
+      def create
+        result = CatalogManagement::AddBookService.call(**book_params)
+        return render_error(result[:error], errors: result[:errors]) if result[:error]
+
+        book = result[:book]
+        response.headers["Location"] = api_v1_book_url(book)
+
+        render_data(BookSerializer.new(book).serializable_hash, status: :created)
+      end
+
       private
+        def book_params
+          params.expect(book: [ :title, :author, :serial_number ]).to_h.symbolize_keys
+        end
+
         def pagination(page)
           { page: page.page, limit: page.limit, count: page.count, pages: page.pages }
         end

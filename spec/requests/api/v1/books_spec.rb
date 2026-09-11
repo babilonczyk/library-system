@@ -104,6 +104,76 @@ RSpec.describe "Api::V1::Books" do
     end
   end
 
+  describe "POST /api/v1/books" do
+    let(:valid_attributes) { { title: "Solaris", author: "Stanisław Lem", serial_number: "200003" } }
+
+    it "creates the book and answers 201 with it" do
+      post "/api/v1/books", params: { book: valid_attributes }
+
+      aggregate_failures do
+        expect(response).to have_http_status(:created)
+        expect(response.parsed_body["data"]).to include(
+          "title" => "Solaris", "serial_number" => "200003", "available" => true
+        )
+        expect(Book.count).to eq(1)
+      end
+    end
+
+    it "points the Location header at the new book" do
+      post "/api/v1/books", params: { book: valid_attributes }
+
+      expect(response.headers["Location"]).to end_with("/api/v1/books/#{Book.first.id}")
+    end
+
+    it "answers 400 when the book parameter is missing entirely" do
+      expected_errors = [ { "code" => "parameter_missing",
+                            "detail" => "A required parameter is missing.",
+                            "source" => "book" } ]
+
+      post "/api/v1/books", params: { title: "Solaris" }
+
+      aggregate_failures do
+        expect(response).to have_http_status(:bad_request)
+        expect(response.parsed_body).to eq("errors" => expected_errors)
+      end
+    end
+
+    it "answers 422 with one entry per missing field" do
+      post "/api/v1/books", params: { book: { title: "Solaris" } }
+
+      aggregate_failures do
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.parsed_body["errors"].map { |error| error["source"] })
+          .to contain_exactly("author", "serial_number")
+        expect(response.parsed_body["errors"].map { |error| error["code"] }.uniq)
+          .to eq([ "validation_failed" ])
+      end
+    end
+
+    it "answers 422 for a serial number already in use" do
+      create(:book, serial_number: "200003")
+      expected_errors = [ { "code" => "validation_failed",
+                            "detail" => "Serial number has already been taken",
+                            "source" => "serial_number" } ]
+
+      post "/api/v1/books", params: { book: valid_attributes }
+
+      aggregate_failures do
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.parsed_body).to eq("errors" => expected_errors)
+      end
+    end
+
+    it "ignores an attribute the client is not allowed to set" do
+      post "/api/v1/books", params: { book: valid_attributes.merge(withdrawn_at: Time.current) }
+
+      aggregate_failures do
+        expect(response).to have_http_status(:created)
+        expect(Book.first.withdrawn_at).to be_nil
+      end
+    end
+  end
+
   describe "GET /api/v1/books/:id" do
     let(:book) { create(:book, title: "Solaris", author: "Stanisław Lem", serial_number: "200003") }
 

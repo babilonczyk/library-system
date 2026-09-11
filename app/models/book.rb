@@ -15,8 +15,10 @@ class Book < ApplicationRecord
 
   validates :title, presence: true
   validates :author, presence: true
+  # allow_blank on the format check, so a missing serial number reports only
+  # that it is missing rather than that it is also malformed.
   validates :serial_number, presence: true,
-                            format: { with: SERIAL_NUMBER_FORMAT },
+                            format: { with: SERIAL_NUMBER_FORMAT, allow_blank: true },
                             uniqueness: true
 
   def withdrawn?

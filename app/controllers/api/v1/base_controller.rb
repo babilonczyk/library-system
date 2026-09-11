@@ -33,9 +33,17 @@ module Api
           render json: body, status: status
         end
 
-        def render_error(code, source: nil, status: nil)
-          render json: { errors: [ error_object(code, source: source) ] },
-                 status: status || status_for(code)
+        # The single way a refusal reaches the client. Record errors render one
+        # entry per offending field, each naming the field in `source`.
+        def render_error(code, source: nil, errors: nil)
+          entries =
+            if errors
+              errors.map { |error| error_object(code, source: error.attribute, detail: error.full_message) }
+            else
+              [ error_object(code, source: source) ]
+            end
+
+          render json: { errors: entries }, status: status_for(code)
         end
 
         def error_object(code, source: nil, detail: nil)
@@ -57,15 +65,8 @@ module Api
           render_error(:record_not_found)
         end
 
-        # One entry per invalid field, so a client can attach each message to the
-        # input that caused it. The detail comes from Active Model, which has
-        # already translated it.
         def render_record_invalid(exception)
-          errors = exception.record.errors.map do |error|
-            error_object(:validation_failed, source: error.attribute, detail: error.full_message)
-          end
-
-          render json: { errors: errors }, status: status_for(:validation_failed)
+          render_error(:validation_failed, errors: exception.record.errors)
         end
 
         def render_parameter_missing(exception)
