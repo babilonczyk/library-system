@@ -16,9 +16,11 @@ module CirculationManagement
       @book.with_lock do
         return { error: :book_withdrawn } if @book.withdrawn?
 
-        { loan: @book.loans.create!(reader: @reader,
-                                    borrowed_on: @on,
-                                    due_on: LoanPolicy.due_on(@on)) }
+        loan = @book.loans.create!(reader: @reader,
+                                   borrowed_on: @on,
+                                   due_on: LoanPolicy.due_on(@on))
+
+        { loan: loan }
       end
     rescue ActiveRecord::RecordNotUnique
       { error: :book_already_borrowed }

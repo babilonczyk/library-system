@@ -37,8 +37,9 @@ module Api
         # Every list endpoint answers with the same meta object.
         def paginate(scope)
           page, records = pagy(scope, max_limit: MAX_LIMIT)
+          meta = { page: page.page, limit: page.limit, count: page.count, pages: page.pages }
 
-          [ records, { page: page.page, limit: page.limit, count: page.count, pages: page.pages } ]
+          [ records, meta ]
         end
 
         def render_data(data, meta: nil, status: :ok)
