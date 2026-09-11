@@ -81,8 +81,10 @@ jobs:
         with:
           bundler-cache: true
 
+      # db:test:prepare, not db:prepare. The latter runs seeds when it creates a
+      # database, which fills the test database with development sample data.
       - name: Prepare the test database
-        run: bin/rails db:prepare
+        run: bin/rails db:test:prepare
 
       - name: Run tests
         run: bundle exec rspec

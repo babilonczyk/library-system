@@ -16,6 +16,17 @@ RSpec.describe "Application environment" do
     end
   end
 
+  # Guards the mistake that this exact line was added to catch: preparing the
+  # test database with a task that also runs seeds. Without it, development
+  # sample data turns up as twenty-odd unrelated failures elsewhere.
+  it "starts from an empty database" do
+    aggregate_failures do
+      expect(Book.count).to eq(0)
+      expect(Reader.count).to eq(0)
+      expect(Loan.count).to eq(0)
+    end
+  end
+
   it "runs in UTC" do
     expect(Time.zone.name).to eq("UTC")
   end
