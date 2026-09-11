@@ -16,6 +16,7 @@ module Api
         record_not_found: :not_found,
         parameter_missing: :bad_request,
         invalid_availability_filter: :bad_request,
+        book_on_loan: :conflict,
         validation_failed: :unprocessable_content
       }.freeze
 

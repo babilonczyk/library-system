@@ -174,6 +174,65 @@ RSpec.describe "Api::V1::Books" do
     end
   end
 
+  describe "DELETE /api/v1/books/:id" do
+    it "answers 204 with no body and takes the book out of the catalog" do
+      book = create(:book)
+
+      delete "/api/v1/books/#{book.id}"
+
+      aggregate_failures do
+        expect(response).to have_http_status(:no_content)
+        expect(response.body).to be_empty
+        expect(book.reload).to be_withdrawn
+      end
+    end
+
+    it "removes the book from the index and makes its detail 404" do
+      book = create(:book)
+
+      delete "/api/v1/books/#{book.id}"
+      get "/api/v1/books"
+      index = response.parsed_body["data"]
+      get "/api/v1/books/#{book.id}"
+
+      aggregate_failures do
+        expect(index).to be_empty
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    it "keeps the borrowing history in the table" do
+      book = create(:book)
+      create(:loan, book: book, returned_on: Date.current)
+
+      delete "/api/v1/books/#{book.id}"
+
+      expect(book.loans.count).to eq(1)
+    end
+
+    it "answers 409 while the book is on loan" do
+      book = create(:book, :borrowed)
+      expected_errors = [ { "code" => "book_on_loan",
+                            "detail" => "This book is on loan and cannot be withdrawn until it is returned." } ]
+
+      delete "/api/v1/books/#{book.id}"
+
+      aggregate_failures do
+        expect(response).to have_http_status(:conflict)
+        expect(response.parsed_body).to eq("errors" => expected_errors)
+        expect(book.reload).not_to be_withdrawn
+      end
+    end
+
+    it "answers 404 for a book that is already withdrawn" do
+      book = create(:book, :withdrawn)
+
+      delete "/api/v1/books/#{book.id}"
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe "GET /api/v1/books/:id" do
     let(:book) { create(:book, title: "Solaris", author: "Stanisław Lem", serial_number: "200003") }
 

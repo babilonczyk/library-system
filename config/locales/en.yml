@@ -8,4 +8,5 @@ en:
       record_not_found: "The requested resource could not be found."
       parameter_missing: "A required parameter is missing."
       invalid_availability_filter: "The available filter accepts only true or false."
+      book_on_loan: "This book is on loan and cannot be withdrawn until it is returned."
       validation_failed: "The submitted data is not valid."

@@ -33,6 +33,16 @@ module Api
         render_data(BookSerializer.new(book).serializable_hash, status: :created)
       end
 
+      # Soft delete. The row and its loans stay, the catalog loses the book.
+      def destroy
+        book = Book.not_withdrawn.find(params[:id])
+
+        result = CatalogManagement::WithdrawBookService.call(book: book)
+        return render_error(result[:error]) if result[:error]
+
+        head :no_content
+      end
+
       private
         def book_params
           params.expect(book: [ :title, :author, :serial_number ]).to_h.symbolize_keys
