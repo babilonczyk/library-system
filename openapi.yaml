@@ -1,0 +1,659 @@
+openapi: 3.1.0
+
+info:
+  title: Library System API
+  version: "1.0.0"
+  description: |
+    Lets library staff manage a catalogue of books, the readers who may borrow
+    them, and the movement of books between the two.
+
+    Every successful response is wrapped in `data`, with `meta` alongside it on
+    list endpoints. Every failure is a list of `errors`, each carrying a
+    machine-readable `code`, a human-readable `detail`, and `source` naming the
+    field at fault where there is one.
+
+    There is no authentication. The brief permits it, and adding one would say
+    nothing about the rest of the design.
+
+servers:
+  - url: http://localhost:3000
+    description: The compose stack
+
+tags:
+  - name: Books
+    description: The catalogue
+  - name: Readers
+    description: Who may borrow
+  - name: Circulation
+    description: Books moving in and out
+  - name: Service
+    description: Whether the application is up
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [ Service ]
+      summary: Check the API answers
+      description: |
+        Answers in the success envelope, so the contract is exercised by
+        something. Load balancers and container healthchecks should use `/up`
+        instead, which returns plain 200 or 500 and needs no JSON parsing.
+      operationId: showHealth
+      responses:
+        "200":
+          description: The API is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        const: ok
+              example:
+                data:
+                  status: ok
+
+  /api/v1/books:
+    get:
+      tags: [ Books ]
+      summary: List the catalogue
+      description: |
+        Ordered by title. Withdrawn books never appear, whatever the filter
+        says. The list carries no borrowing history; fetch a single book for
+        that.
+      operationId: listBooks
+      parameters:
+        - name: available
+          in: query
+          required: false
+          description: |
+            `true` returns only books nobody has out, `false` only books
+            currently on loan. Any other value is refused rather than guessed.
+          schema:
+            type: string
+            enum: [ "true", "false" ]
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          description: Page size, capped at 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: A page of books
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Book"
+                  meta:
+                    $ref: "#/components/schemas/PageMeta"
+              example:
+                data:
+                  - id: 1
+                    title: Dune
+                    author: Frank Herbert
+                    serial_number: "200001"
+                    available: false
+                  - id: 7
+                    title: The Dispossessed
+                    author: Ursula K. Le Guin
+                    serial_number: "200007"
+                    available: true
+                meta:
+                  page: 1
+                  limit: 20
+                  count: 25
+                  pages: 2
+        "400":
+          description: The availability filter was neither true nor false
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: invalid_availability_filter
+                    detail: The available filter accepts only true or false.
+
+    post:
+      tags: [ Books ]
+      summary: Add a book
+      operationId: createBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ book ]
+              properties:
+                book:
+                  type: object
+                  required: [ title, author, serial_number ]
+                  properties:
+                    title:
+                      type: string
+                    author:
+                      type: string
+                    serial_number:
+                      type: string
+                      pattern: '^\d{6}$'
+                      description: Six digits, unique across the catalogue.
+            example:
+              book:
+                title: Solaris
+                author: Stanisław Lem
+                serial_number: "200003"
+      responses:
+        "201":
+          description: |
+            The book was added. `Location` points at it.
+          headers:
+            Location:
+              schema:
+                type: string
+              example: http://localhost:3000/api/v1/books/26
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Book"
+              example:
+                data:
+                  id: 26
+                  title: Solaris
+                  author: Stanisław Lem
+                  serial_number: "200003"
+                  available: true
+        "400":
+          description: The `book` parameter was missing entirely
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: parameter_missing
+                    detail: A required parameter is missing.
+                    source: book
+        "422":
+          description: |
+            One entry per field at fault, `source` naming each.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: validation_failed
+                    detail: Author can't be blank
+                    source: author
+                  - code: validation_failed
+                    detail: Serial number has already been taken
+                    source: serial_number
+
+  /api/v1/books/{id}:
+    get:
+      tags: [ Books ]
+      summary: Fetch a book with its borrowing history
+      description: |
+        The history runs newest first and names the reader on each entry. A
+        withdrawn book answers 404: its history survives in the database, but
+        nothing serves it.
+      operationId: showBook
+      parameters:
+        - $ref: "#/components/parameters/BookId"
+      responses:
+        "200":
+          description: The book and every loan it has had
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/BookWithHistory"
+              example:
+                data:
+                  id: 6
+                  title: Foundation
+                  author: Isaac Asimov
+                  serial_number: "200006"
+                  available: false
+                  loans:
+                    - id: 10
+                      borrowed_on: "2026-09-08"
+                      due_on: "2026-10-08"
+                      returned_on: null
+                      reader:
+                        id: 8
+                        name: Katherine Johnson
+                        email: katherine.johnson@example.com
+                        card_number: "100008"
+                    - id: 9
+                      borrowed_on: "2026-06-13"
+                      due_on: "2026-07-13"
+                      returned_on: "2026-06-23"
+                      reader:
+                        id: 7
+                        name: Edsger Dijkstra
+                        email: edsger.dijkstra@example.com
+                        card_number: "100007"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [ Books ]
+      summary: Remove a book from the catalogue
+      description: |
+        A soft delete. The row and its loans stay, so the library keeps the
+        record of who had the book; the catalogue loses it and every endpoint
+        answers 404 from then on. A book that is currently out cannot be
+        removed until it comes back.
+      operationId: deleteBook
+      parameters:
+        - $ref: "#/components/parameters/BookId"
+      responses:
+        "204":
+          description: Removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: The book is on loan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: book_on_loan
+                    detail: This book is on loan and cannot be withdrawn until it is returned.
+
+  /api/v1/books/{book_id}/borrow:
+    post:
+      tags: [ Circulation ]
+      summary: Lend a book to a reader
+      description: |
+        The loan runs for thirty days from today. A book can have only one open
+        loan, which the database enforces, so two simultaneous requests cannot
+        both succeed.
+      operationId: borrowBook
+      parameters:
+        - $ref: "#/components/parameters/BorrowBookId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ borrowing ]
+              properties:
+                borrowing:
+                  type: object
+                  required: [ card_number ]
+                  properties:
+                    card_number:
+                      type: string
+                      pattern: '^\d{6}$'
+            example:
+              borrowing:
+                card_number: "100001"
+      responses:
+        "201":
+          description: The loan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Loan"
+              example:
+                data:
+                  id: 11
+                  borrowed_on: "2026-09-11"
+                  due_on: "2026-10-11"
+                  returned_on: null
+        "400":
+          description: The `borrowing` parameter was missing entirely
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: parameter_missing
+                    detail: A required parameter is missing.
+                    source: borrowing
+        "404":
+          description: No such book, or no reader holds that card number
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: record_not_found
+                    detail: The requested resource could not be found.
+        "409":
+          description: The book is already out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: book_already_borrowed
+                    detail: This book is already on loan.
+
+  /api/v1/books/{book_id}/return:
+    post:
+      tags: [ Circulation ]
+      summary: Take a book back
+      description: |
+        The book identifies the loan being closed, since only one can be open.
+        No body.
+      operationId: returnBook
+      parameters:
+        - $ref: "#/components/parameters/BorrowBookId"
+      responses:
+        "200":
+          description: The closed loan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Loan"
+              example:
+                data:
+                  id: 11
+                  borrowed_on: "2026-09-11"
+                  due_on: "2026-10-11"
+                  returned_on: "2026-09-20"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Nobody has the book out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: book_not_borrowed
+                    detail: This book is not currently on loan.
+
+  /api/v1/readers:
+    get:
+      tags: [ Readers ]
+      summary: List readers
+      description: Ordered by name.
+      operationId: listReaders
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          description: Page size, capped at 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: A page of readers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Reader"
+                  meta:
+                    $ref: "#/components/schemas/PageMeta"
+              example:
+                data:
+                  - id: 1
+                    name: Ada Lovelace
+                    email: ada.lovelace@example.com
+                    card_number: "100001"
+                meta:
+                  page: 1
+                  limit: 20
+                  count: 8
+                  pages: 1
+
+    post:
+      tags: [ Readers ]
+      summary: Register a reader
+      operationId: createReader
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ reader ]
+              properties:
+                reader:
+                  type: object
+                  required: [ name, email, card_number ]
+                  properties:
+                    name:
+                      type: string
+                    email:
+                      type: string
+                      format: email
+                    card_number:
+                      type: string
+                      pattern: '^\d{6}$'
+                      description: Six digits, unique across readers.
+            example:
+              reader:
+                name: Ada Lovelace
+                email: ada.lovelace@example.com
+                card_number: "100001"
+      responses:
+        "201":
+          description: The registered reader
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Reader"
+              example:
+                data:
+                  id: 9
+                  name: Ada Lovelace
+                  email: ada.lovelace@example.com
+                  card_number: "100001"
+        "400":
+          description: The `reader` parameter was missing entirely
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: parameter_missing
+                    detail: A required parameter is missing.
+                    source: reader
+        "422":
+          description: The card number or email is taken, or a field is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+              example:
+                errors:
+                  - code: validation_failed
+                    detail: Email has already been taken
+                    source: email
+
+components:
+  parameters:
+    BookId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 6
+
+    BorrowBookId:
+      name: book_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 6
+
+  responses:
+    NotFound:
+      description: No such book, or it has been removed from the catalogue
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+          example:
+            errors:
+              - code: record_not_found
+                detail: The requested resource could not be found.
+
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        author:
+          type: string
+        serial_number:
+          type: string
+          pattern: '^\d{6}$'
+        available:
+          type: boolean
+          description: |
+            Derived from the loans rather than stored, so it cannot disagree
+            with them. False while the book is out.
+
+    BookWithHistory:
+      allOf:
+        - $ref: "#/components/schemas/Book"
+        - type: object
+          properties:
+            loans:
+              type: array
+              description: Newest first.
+              items:
+                $ref: "#/components/schemas/LoanWithReader"
+
+    Reader:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        card_number:
+          type: string
+          pattern: '^\d{6}$'
+
+    Loan:
+      type: object
+      properties:
+        id:
+          type: integer
+        borrowed_on:
+          type: string
+          format: date
+        due_on:
+          type: string
+          format: date
+          description: Thirty days after the borrow date.
+        returned_on:
+          type: [ string, "null" ]
+          format: date
+          description: Null while the book is still out.
+
+    LoanWithReader:
+      allOf:
+        - $ref: "#/components/schemas/Loan"
+        - type: object
+          properties:
+            reader:
+              $ref: "#/components/schemas/Reader"
+
+    PageMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        count:
+          type: integer
+          description: Total records, not the size of this page.
+        pages:
+          type: integer
+
+    Errors:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: |
+                  Machine-readable. One of `record_not_found`,
+                  `parameter_missing`, `invalid_availability_filter`,
+                  `book_on_loan`, `book_already_borrowed`,
+                  `book_not_borrowed`, `validation_failed`.
+              detail:
+                type: string
+                description: Human-readable, and the only part that is prose.
+              source:
+                type: string
+                description: The field at fault, where there is one.

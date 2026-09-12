@@ -21,6 +21,10 @@ Rails.application.routes.draw do
     end
   end
 
+  # The contract, browsable at /api-docs. That page is static, in public, and
+  # fetches this.
+  get "openapi.yaml" => "api_docs#show"
+
   # Plain health check for load balancers and container healthchecks. Returns
   # 200 if the app boots with no exceptions, otherwise 500. Deliberately not in
   # the API envelope, so infrastructure does not have to parse JSON.

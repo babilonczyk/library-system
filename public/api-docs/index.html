@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Library System API</title>
+
+    <!--
+      Swagger UI from a CDN, pinned. Vendoring the dist would add about a
+      megabyte of JavaScript to a repository this size; the cost of the CDN is
+      that this page needs internet the first time it loads. The document
+      itself is openapi.yaml in the repository root, readable without any of
+      this.
+    -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.29.4/swagger-ui.css">
+  </head>
+
+  <body>
+    <div id="swagger-ui"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.29.4/swagger-ui-bundle.js" crossorigin></script>
+    <script>
+      window.onload = () => {
+        SwaggerUIBundle({
+          url: "/openapi.yaml",
+          dom_id: "#swagger-ui",
+          deepLinking: true
+        });
+      };
+    </script>
+  </body>
+</html>

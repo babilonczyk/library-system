@@ -24,6 +24,27 @@ PORT=3003 docker compose up
 Database contents survive `docker compose down`. To start over from an empty
 catalogue, remove the volume with `docker compose down -v`.
 
+## The API
+
+The full contract is `openapi.yaml` in the repository root. It is also browsable
+at `/api-docs`, which renders it with Swagger UI.
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| GET | `/api/v1/books` | The catalogue, filterable by availability |
+| POST | `/api/v1/books` | Add a book |
+| GET | `/api/v1/books/:id` | One book with its full borrowing history |
+| DELETE | `/api/v1/books/:id` | Remove a book from the catalogue |
+| POST | `/api/v1/books/:id/borrow` | Lend it to a reader |
+| POST | `/api/v1/books/:id/return` | Take it back |
+| GET | `/api/v1/readers` | The readers |
+| POST | `/api/v1/readers` | Register a reader |
+
+Successful responses are wrapped in `data`, with `meta` alongside on lists.
+Failures are a list of `errors`, each with a machine-readable `code`, a
+human-readable `detail`, and `source` naming the field at fault where there is
+one.
+
 ## Background Jobs
 
 Reminders go out on a schedule, so the app needs Redis and a Sidekiq process
