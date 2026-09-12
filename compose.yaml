@@ -1,0 +1,66 @@
+# docker compose up, and nothing else. Every value has a default, so the stack
+# needs no local file to exist and no variable to be exported first.
+#
+# The app is published on 3000. Set PORT to move it if something already holds
+# that port: PORT=3003 docker compose up
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  web:
+    build: .
+    command: bin/rails server -b 0.0.0.0
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/library_system_development
+      REDIS_URL: redis://redis:6379/0
+    # Healthy, not merely started. The database is reachable before the
+    # entrypoint runs db:prepare against it.
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/up" ]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+
+  worker:
+    build: .
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/library_system_development
+      REDIS_URL: redis://redis:6379/0
+    # Waits on the web service, which is the one that prepares the database.
+    # Starting the worker against a database with no tables would only produce
+    # a crash loop until the schema appeared.
+    depends_on:
+      web:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

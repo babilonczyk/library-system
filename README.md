@@ -3,10 +3,31 @@
 A Rails API for library staff to manage books, borrowing and returns, with
 automated return reminders.
 
+## Running It
+
+```sh
+docker compose up
+```
+
+That is the whole setup. Four services come up in order: PostgreSQL and Redis
+first, then the API once they are healthy, then the Sidekiq worker once the API
+has prepared the database. The catalogue is created and seeded on first boot, so
+there is something to read straight away.
+
+The API is on `http://localhost:3000`. If something already holds that port,
+move it:
+
+```sh
+PORT=3003 docker compose up
+```
+
+Database contents survive `docker compose down`. To start over from an empty
+catalogue, remove the volume with `docker compose down -v`.
+
 ## Background Jobs
 
 Reminders go out on a schedule, so the app needs Redis and a Sidekiq process
-next to the web server.
+next to the web server. The compose stack starts both. Outside it:
 
 ```sh
 redis-server
@@ -20,8 +41,14 @@ stamped on the loan as it is sent, so a second run the same day sends nothing.
 To see it work without waiting for the schedule:
 
 ```sh
-bin/rails reminders:sweep
-bin/rails reminders:sweep DATE=2026-09-14
+docker compose exec web bin/rails reminders:sweep
+docker compose exec web bin/rails reminders:sweep DATE=2026-09-14
+```
+
+The mails land as `.eml` files inside the worker, one per reader:
+
+```sh
+docker compose exec worker ls tmp/mails
 ```
 
 The seeds leave one loan in each reminder state, so the first sweep on a fresh
