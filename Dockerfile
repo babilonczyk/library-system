@@ -1,8 +1,7 @@
-# A demonstration stack, not a deployment. It runs in development mode on
-# purpose: the database is seeded on first boot, reminder mails are written to
-# tmp/mails where they can be read, and the mailer previews are reachable. A
-# production image would hide all three behind configuration that proves
-# nothing about the application.
+# Development mode on purpose: the database is seeded on first boot, reminder
+# mails are written to tmp/mails where they can be read, and the mailer
+# previews are reachable. A production image would hide all three behind
+# configuration this stack has no use for.
 #
 # Single stage. The image is a little larger for keeping the build tools, and
 # the file stays short enough to read in one go.

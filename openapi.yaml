@@ -12,8 +12,7 @@ info:
     machine-readable `code`, a human-readable `detail`, and `source` naming the
     field at fault where there is one.
 
-    There is no authentication. The brief permits it, and adding one would say
-    nothing about the rest of the design.
+    There is no authentication. Every endpoint is open.
 
 servers:
   # Relative, so Try it out in the browsable docs calls whatever host and port

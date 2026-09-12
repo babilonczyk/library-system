@@ -1,4 +1,4 @@
-# Sample catalog for development, and what a reviewer sees the first time the
+# Sample catalog for development, and what the API serves the first time the
 # container boots, since the entrypoint runs db:prepare on an empty database.
 #
 # Idempotent. Each record is looked up by the identifier that carries its unique

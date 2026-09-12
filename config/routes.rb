@@ -5,8 +5,7 @@ require "sidekiq/cron/web"
 
 Rails.application.routes.draw do
   # No authentication. Anyone who can reach the port can retry or kill a job.
-  # Stated in the README as a known gap rather than solved with a login the
-  # brief never asked for.
+  # Listed in the README under what is deliberately absent.
   mount Sidekiq::Web => "/sidekiq"
 
   namespace :api do
