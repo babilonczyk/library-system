@@ -16,8 +16,12 @@ info:
     nothing about the rest of the design.
 
 servers:
-  - url: http://localhost:3000
-    description: The compose stack
+  # Relative, so Try it out in the browsable docs calls whatever host and port
+  # the page itself was served from. A fixed http://localhost:3000 breaks the
+  # moment the stack is started on another port, and turns a same-origin
+  # request into a cross-origin one.
+  - url: /
+    description: This server
 
 tags:
   - name: Books
