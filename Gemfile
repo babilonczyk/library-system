@@ -22,7 +22,7 @@ gem "bootsnap", "~> 1.26", require: false
 group :development, :test do
   gem "debug", "~> 1.11", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "bundler-audit", "~> 0.9", require: false
-  gem "brakeman", "~> 8.0", require: false
+  gem "brakeman", "~> 8.1", require: false
   gem "rubocop-rails-omakase", "~> 1.1", require: false
 
   gem "rspec-rails", "~> 8.0"
