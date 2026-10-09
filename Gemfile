@@ -29,5 +29,5 @@ group :development, :test do
   gem "factory_bot_rails", "~> 6.5"
   gem "faker", "~> 3.8"
   gem "shoulda-matchers", "~> 8.0"
-  gem "simplecov", "~> 0.22", require: false
+  gem "simplecov", "~> 1.3", require: false
 end
