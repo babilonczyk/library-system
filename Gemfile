@@ -14,7 +14,7 @@ gem "sidekiq", "~> 8.1"
 gem "sidekiq-cron", "~> 2.4"
 
 # Pagination for the books index
-gem "pagy", "~> 43.6"
+gem "pagy", "~> 43.8"
 
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", "~> 1.26", require: false
