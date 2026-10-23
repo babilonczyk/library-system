@@ -173,7 +173,7 @@ GEM
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
     ostruct (0.6.3)
-    pagy (43.6.2)
+    pagy (43.8.1)
       json
       uri
       yaml
@@ -325,7 +325,7 @@ GEM
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
     unicode-emoji (4.2.0)
-    uri (1.1.1)
+    uri (1.1.2)
     useragent (0.16.11)
     websocket-driver (0.8.2)
       base64
@@ -356,7 +356,7 @@ DEPENDENCIES
   faker (~> 3.8)
   json (~> 2.21)
   oj (~> 3.17)
-  pagy (~> 43.6)
+  pagy (~> 43.8)
   pg (~> 1.6)
   puma (~> 8.0)
   rails (~> 8.1.3)
